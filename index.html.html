@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CAGE Distance Framework Tool</title>
+<style>
+:root{--bg:#faf8f4;--card:#fff;--tx:#1d1d1b;--mu:#6b6860;--bd:#e3dfd6;--ac:#1f4e79;--C:#b5473a;--A:#2f6f9f;--G:#4f8a4f;--E:#c28a1c;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#17171a;--card:#212125;--tx:#ececea;--mu:#a09d95;--bd:#34343a;--ac:#7fb2e0;--C:#e0786a;--A:#6aa6d6;--G:#7db87d;--E:#e0b050}}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.55 Georgia,"Times New Roman",serif}
+main{max-width:920px;margin:0 auto;padding:20px 16px 60px}
+h1{font-size:26px;margin:0 0 4px}h2{font-size:18px;margin:26px 0 10px}h3{font-size:15px;margin:0 0 4px}
+.sub{color:var(--mu);margin:0 0 16px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:14px 16px;margin-bottom:12px}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+label{font:600 12px system-ui,sans-serif;color:var(--mu);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:4px}
+select{width:100%;padding:8px;border:1px solid var(--bd);border-radius:6px;background:var(--card);color:var(--tx);font:15px system-ui,sans-serif}
+.bar{height:10px;background:var(--bd);border-radius:5px;overflow:hidden;margin:6px 0}.bar i{display:block;height:100%}
+.hd{display:flex;justify-content:space-between;align-items:baseline;gap:8px}.sc{font:700 22px system-ui,sans-serif}
+.src{font:12px system-ui,sans-serif;color:var(--mu);margin-top:6px}.src a{color:var(--ac)}
+.tag{font:600 12px system-ui,sans-serif;padding:2px 8px;border-radius:10px;background:var(--bd)}
+.big{font:700 34px system-ui,sans-serif}
+table{border-collapse:collapse;width:100%;font:13px system-ui,sans-serif}th,td{padding:6px 8px;border-bottom:1px solid var(--bd);text-align:left}
+.wrap{overflow-x:auto}
+.sl{display:grid;grid-template-columns:90px 1fr 44px;gap:8px;align-items:center;font:13px system-ui,sans-serif;margin:4px 0}
+button{font:600 13px system-ui,sans-serif;padding:6px 12px;border-radius:6px;border:1px solid var(--bd);background:var(--card);color:var(--tx);cursor:pointer}
+.warn{font:13px system-ui,sans-serif;color:var(--mu);border-left:3px solid var(--E);padding-left:10px}
+</style></head><body><main>
+<h1>CAGE Distance Framework Tool</h1>
+<p class="sub">Ghemawat’s Cultural, Administrative, Geographic and Economic distance between a home and a target country, weighted for an industry. Scores run 0 (no distance) to 100 (maximum distance).</p>
+<div class="card"><div class="row">
+<div><label for="h">Home country</label><select id="h"></select></div>
+<div><label for="t">Target country</label><select id="t"></select></div>
+<div><label for="i">Industry</label><select id="i"></select></div></div></div>
+<div id="out"></div>
+<h2>Method, data and limits</h2>
+<div class="card warn" id="lim"></div>
+</main>
+<script>
+const D=(n,la,lo,tz,l,r,law,p,i,m,u,t,g,cpi,b)=>({n,la,lo,tz,l,r,law,h:[p,i,m,u,t],g,cpi,b});
+// name, lat, lon, UTC offset, languages, religion group, legal family, Hofstede PDI IDV MAS UAI LTO, GNI/capita (US$, approx. World Bank Atlas), CPI 2023, blocs
+const C={
+US:D("United States",38.9,-77,-5,["en"],"Ch","cl",40,91,62,46,26,80300,69,["USMCA"]),
+CA:D("Canada",45.4,-75.7,-5,["en","fr"],"Ch","cl",39,80,52,48,36,54000,76,["USMCA","CPTPP"]),
+MX:D("Mexico",19.4,-99.1,-6,["es"],"Ch","civ",81,30,69,82,24,11500,31,["USMCA","CPTPP"]),
+UK:D("United Kingdom",51.5,-0.1,0,["en"],"Ch","cl",35,89,66,35,51,49000,71,["CPTPP"]),
+DE:D("Germany",52.5,13.4,1,["de"],"Ch","civ",35,67,66,65,83,53000,78,["EU"]),
+FR:D("France",48.9,2.35,1,["fr"],"Ch","civ",68,71,43,86,63,44000,71,["EU"]),
+BR:D("Brazil",-15.8,-47.9,-3,["pt"],"Ch","civ",69,38,49,76,44,9000,36,[]),
+IN:D("India",28.6,77.2,5.5,["en","hi"],"Hi","cl",77,48,56,40,51,2500,39,[]),
+CN:D("China",39.9,116.4,8,["zh"],"EA","civ",80,20,66,30,87,13400,42,["RCEP"]),
+JP:D("Japan",35.7,139.7,9,["ja"],"EA","civ",54,46,95,92,88,42000,73,["RCEP","CPTPP"]),
+KR:D("South Korea",37.6,127,9,["ko"],"EA","civ",60,18,39,85,100,35000,63,["RCEP"]),
+AU:D("Australia",-35.3,149.1,10,["en"],"Ch","cl",38,90,61,51,21,64000,75,["RCEP","CPTPP"]),
+AE:D("United Arab Emirates",24.5,54.4,4,["ar","en"],"Mu","cl",90,25,50,80,50,43000,68,[]),
+NG:D("Nigeria",9.1,7.5,1,["en"],"Mix","cl",80,30,60,55,13,2100,25,[]),
+ID:D("Indonesia",-6.2,106.8,7,["id"],"Mu","civ",78,14,46,48,62,4800,34,["RCEP"]),
+VN:D("Vietnam",21,105.8,7,["vi"],"EA","civ",70,20,40,30,57,4180,41,["RCEP","CPTPP"]),
+ZA:D("South Africa",-25.7,28.2,2,["en"],"Ch","cl",49,65,63,49,34,6500,41,[]),
+RU:D("Russia",55.8,37.6,3,["ru"],"Ch","civ",93,39,36,95,81,13000,26,[])};
+const EU=["DE","FR"],BORD=["US|CA","US|MX","DE|FR","CN|IN","CN|VN","CN|RU"],
+FTA=["US|KR","US|AU","US|JP","UK|JP","UK|AU","UK|CA","UK|EU","EU|JP","EU|KR","EU|MX","EU|VN","EU|CA","IN|AE","UK|VN","UK|MX","KR|VN","AU|AE"],
+TENS=["US|CN","US|RU","CN|IN","CN|JP","EU|RU","UK|RU","CN|AU"],SANC={RU:2,CN:1};
+const HN=["power distance","individualism","masculinity","uncertainty avoidance","long-term orientation"];
+const I={
+"Generic (equal weights)":[25,25,25,25,"No industry assumed, so all four dimensions are weighted equally. Use this as a baseline only."],
+"Media and entertainment":[50,20,5,25,"Content is language and taste. Humour, news and storytelling do not translate, so culture dominates. Censorship and licensing rules (administrative) and audience spending power (economic) come next. Digital delivery makes geography nearly irrelevant."],
+"Cement and building materials":[5,30,45,20,"Cement is heavy, cheap and sold at a loss beyond a few hundred kilometres, so logistics dominates. Permits, standards and political relations matter next. Culture hardly touches a commodity."],
+"Software and SaaS":[25,35,5,35,"Product ships at zero marginal transport cost. Data-residency law, procurement rules and sanctions (administrative) and customers’ ability to pay (economic) decide success. Language matters through localisation and support."],
+"Consumer goods and retail":[35,20,15,30,"Tastes, brands and shopping habits are cultural, and price points are set by local incomes. Supply chains matter moderately; regulation less than in regulated sectors."],
+"Pharma and healthcare":[15,50,10,25,"Market access runs through regulators, approval regimes, IP protection and reimbursement, so administrative distance dominates. Income drives what health systems can pay."],
+"Financial services":[20,50,5,25,"Licences, capital controls, sanctions and legal enforcement define whether a firm can operate at all. Geography is largely irrelevant."],
+"Automotive":[15,30,25,30,"Tariffs, standards and local-content rules are administrative; income determines the segment you can sell; plants and parts logistics make geography matter."],
+"Agriculture and food":[20,30,30,20,"Perishability and phytosanitary rules make logistics and regulation critical. Food habits matter culturally; incomes set what buyers pay."]};
+const SRC={
+C:[`Hofstede country comparison (five dimensions)`,"https://www.theculturefactor.com/country-comparison-tool"],
+A:[`WTO regional trade agreements database, OFAC/EU sanctions lists, Transparency International CPI 2023`,"https://www.transparency.org/en/cpi/2023"],
+G:[`Great-circle distance between capitals (haversine) and UTC offsets`,"https://www.timeanddate.com/worldclock/distance.html"],
+E:[`World Bank GNI per capita, Atlas method`,"https://data.worldbank.org/indicator/NY.GNP.PCAP.CD"]};
+const NM={C:"Cultural",A:"Administrative",G:"Geographic",E:"Economic"},K=["C","A","G","E"],CL={C:"var(--C)",A:"var(--A)",G:"var(--G)",E:"var(--E)"};
+const pr=(a,b)=>[a+"|"+b,b+"|"+a];
+const ids=c=>[c,...(EU.includes(c)?["EU"]:[])];
+const pairIn=(a,b,L)=>ids(a).some(x=>ids(b).some(y=>pr(x,y).some(p=>L.includes(p))));
+function fmt(n){return Math.round(n).toLocaleString("en-US")}
+function score(h,t){const a=C[h],b=C[t],o={};
+ const diffs=a.h.map((v,i)=>Math.abs(v-b.h[i])),hof=diffs.reduce((x,y)=>x+y)/5;
+ const sharedL=a.l.some(x=>b.l.includes(x)),rel=a.r===b.r?0:(a.r==="Mix"||b.r==="Mix"?5:10);
+ const cs=Math.min(100,hof*1.5+(sharedL?0:30)+rel);
+ const ord=diffs.map((d,i)=>[d,i]).sort((x,y)=>y[0]-x[0]).slice(0,2);
+ o.C=[cs,`Mean Hofstede gap is ${hof.toFixed(0)} points across five dimensions; the widest are ${HN[ord[0][1]]} (${a.h[ord[0][1]]} vs ${b.h[ord[0][1]]}) and ${HN[ord[1][1]]} (${a.h[ord[1][1]]} vs ${b.h[ord[1][1]]}). ${sharedL?"The countries share a common business language.":"No shared business language (+30)."} ${rel?"Dominant religious traditions differ (+"+rel+").":"Dominant religious tradition is similar."}`];
+ const fta=a.b.some(x=>b.b.includes(x))||pairIn(h,t,FTA),shared=a.b.filter(x=>b.b.includes(x));
+ const sa=Math.max(SANC[h]||0,SANC[t]||0),law=a.law===b.law,ten=pairIn(h,t,TENS);
+ const as=Math.min(100,(fta?0:35)+[0,15,40][sa]+(100-b.cpi)*.3+(law?0:8)+(ten?15:0));
+ o.A=[as,`${fta?"A trade agreement links the pair"+(shared.length?" ("+shared.join(", ")+")":"")+".":"No shared trade bloc or listed bilateral agreement (+35)."} Target CPI score is ${b.cpi}/100 (lower is more corrupt; contributes ${((100-b.cpi)*.3).toFixed(0)}). ${law?"Legal systems share a family.":"Legal families differ (common vs civil law, +8)."} ${sa?(sa==2?"Heavy sanctions exposure (+40).":"Export controls and tariff friction (+15)."):"No major sanctions exposure."} ${ten?"Documented political tension (+15).":""}`];
+ const R=Math.PI/180,dl=(b.la-a.la)*R,dn=(b.lo-a.lo)*R,x=Math.sin(dl/2)**2+Math.cos(a.la*R)*Math.cos(b.la*R)*Math.sin(dn/2)**2,km=12742*Math.asin(Math.sqrt(x));
+ const bord=pairIn(h,t,BORD),tz=Math.abs(a.tz-b.tz),tzd=Math.min(tz,24-tz);
+ const ds=100*Math.log(1+km/500)/Math.log(1+17000/500),gs=Math.max(0,.7*ds+.3*(tzd/12*100)-(bord?15:0));
+ o.G=[gs,`Capitals are about ${fmt(km)} km apart with a ${tzd.toFixed(1)}-hour time-zone gap. ${bord?"The countries share a land border (−15).":"No shared border, so goods move by sea or air."} Distance is scaled logarithmically, because the first thousand kilometres cost more than the last.`];
+ const r=Math.abs(Math.log(a.g/b.g))/Math.log(100)*100,es=Math.min(100,r);
+ o.E=[es,`GNI per capita is about US$${fmt(a.g)} at home and US$${fmt(b.g)} in the target: a ${(Math.max(a.g,b.g)/Math.min(a.g,b.g)).toFixed(1)}× gap. ${b.g<a.g?"The target is poorer, so expect price sensitivity and a thinner premium segment.":"The target is richer, so expect higher customer expectations and higher wage and cost levels."}`];
+ return o}
+function total(s,w){const sw=w.reduce((x,y)=>x+y);return K.reduce((t,k,i)=>t+s[k][0]*w[i]/sw,0)}
+const band=v=>v<25?"Low":v<40?"Moderate":v<55?"Substantial":"High";
+function top(s,w){const sw=w.reduce((x,y)=>x+y);let b=0;K.forEach((k,i)=>{if(s[k][0]*w[i]>s[K[b]][0]*w[b])b=i});return K[b]}
+let W=null,lastInd=null;
+const $=id=>document.getElementById(id);
+function opt(sel,obj,def){sel.innerHTML=Object.keys(obj).map(k=>`<option value="${k}">${obj[k].n||k}</option>`).join("");sel.value=def}
+opt($("h"),C,"US");opt($("t"),C,"IN");opt($("i"),I,"Software and SaaS");
+function render(){
+ const h=$("h").value,t=$("t").value,ind=$("i").value;
+ if(h===t){$("out").innerHTML=`<div class="card">Choose two different countries.</div>`;return}
+ if(lastInd!==ind){W=I[ind].slice(0,4);lastInd=ind}
+ const s=score(h,t),T=total(s,W),tp=top(s,W),sw=W.reduce((x,y)=>x+y);
+ const eq=[25,25,25,25],base=total(s,eq);
+ let H=`<h2>${C[h].n} → ${C[t].n} · ${ind}</h2>
+ <div class="card"><div class="hd"><div><div class="big">${T.toFixed(0)}/100 <span class="tag">${band(T)} distance</span></div>
+ <div class="src">Weighted CAGE distance. Equal-weight baseline: ${base.toFixed(0)} (${band(base)}).</div></div></div>
+ <p><b>How significant is the total distance?</b> ${band(T)} (${T.toFixed(0)}/100). ${T<25?"Expansion should look like a lightly adapted domestic move.":T<40?"Expect real but manageable adaptation costs; plan for them rather than discover them.":T<55?"Distance should shape entry mode and pricing, and the business case needs a distance discount.":"Distance is a first-order strategic issue. Consider partnership, acquisition, a nearer market first, or a staged entry rather than a direct build."}</p>
+ <p><b>What should the firm be most cautious about?</b> ${NM[tp]} distance. It contributes the most to the weighted total (${(s[tp][0]*W[K.indexOf(tp)]/sw).toFixed(1)} points: a score of ${s[tp][0].toFixed(0)} at ${(W[K.indexOf(tp)]/sw*100).toFixed(0)}% weight). ${K.filter(k=>s[k][0]>=60&&k!==tp).length?"Also note "+K.filter(k=>s[k][0]>=60&&k!==tp).map(k=>NM[k]).join(" and ")+", which score high on raw distance even though this industry weights them less.":""}</p></div>
+ <h2>Dimensions</h2>`;
+ K.forEach((k,i)=>{H+=`<div class="card"><div class="hd"><h3>${NM[k]} distance · weight ${(W[i]/sw*100).toFixed(0)}%</h3><span class="sc" style="color:${CL[k]}">${s[k][0].toFixed(0)}</span></div>
+ <div class="bar"><i style="width:${s[k][0]}%;background:${CL[k]}"></i></div><div>${s[k][1]}</div>
+ <div class="src">Source: <a href="${SRC[k][1]}" target="_blank" rel="noopener">${SRC[k][0]}</a></div></div>`});
+ H+=`<h2>Weighting for ${ind}</h2><div class="card"><div>${I[ind][4]}</div>
+ <div style="margin-top:10px">${K.map((k,i)=>`<div class="sl"><span>${NM[k]}</span><input type="range" min="0" max="100" value="${W[i]}" data-i="${i}"><span>${(W[i]/sw*100).toFixed(0)}%</span></div>`).join("")}
+ <button id="rs">Reset to industry default</button> <span class="src">Drag to try your own weights; all results update.</span></div></div>
+ <h2>Sensitivity: what if the weights shift?</h2><div class="card wrap"><table><tr><th>Scenario</th><th>Weights C/A/G/E</th><th>Total</th><th>Rating</th><th>Most cautious about</th><th>Changes call?</th></tr>`;
+ const sc=[["Current weights",W]],mult=(k)=>W.map((v,i)=>i===k?v*2:v);
+ sc.push(["Equal weights",eq]);K.forEach((k,i)=>sc.push([NM[k]+" doubled",mult(i)]));sc.push(["Cultural and geographic ignored",[0,W[1],0,W[3]]]);
+ sc.forEach(([n,w])=>{const tt=total(s,w),ss=w.reduce((x,y)=>x+y),tq=top(s,w),ch=band(tt)!==band(T)||tq!==tp;
+ H+=`<tr><td>${n}</td><td>${w.map(v=>(v/ss*100).toFixed(0)).join(" / ")}</td><td>${tt.toFixed(0)}</td><td>${band(tt)}</td><td>${NM[tq]}</td><td>${n==="Current weights"?"–":ch?"Yes":"No"}</td></tr>`});
+ const cs=sc.slice(1).filter(([n,w])=>{const tt=total(s,w);return band(tt)!==band(T)||top(s,w)!==tp}).length;
+ H+=`</table><p>${cs===0?"The rating and the top caution hold under every scenario tested, so the conclusion is robust to the weighting judgement.":cs+" of "+(sc.length-1)+" alternative weightings change the rating or the top caution, so the recommendation depends on the weighting judgement. Defend the industry weights explicitly before relying on it."}</p></div>`;
+ $("out").innerHTML=H;
+ document.querySelectorAll("input[type=range]").forEach(e=>e.oninput=()=>{W[+e.dataset.i]=+e.value;if(W.every(v=>v===0))W[+e.dataset.i]=1;render()});
+ $("rs").onclick=()=>{lastInd=null;render()};
+}
+["h","t","i"].forEach(id=>$(id).onchange=render);
+$("lim").innerHTML=`<b>How scores work.</b> Cultural = mean absolute Hofstede gap × 1.5, +30 if no shared business language, +5–10 for religious difference. Administrative = 35 if no trade agreement, + sanctions (15 or 40), + 0.3 × (100 − target CPI), +8 for different legal family, +15 for documented political tension. Geographic = 70% log-scaled capital-to-capital distance and 30% time-zone gap, −15 for a shared border. Economic = |ln(GNI ratio)| scaled so a 100× gap scores 100. Rating bands: under 25 low, 25–40 moderate, 40–55 substantial, 55+ high.<br><br>
+<b>Limits.</b> The coefficients and band cut-offs are my own judgement, not Ghemawat’s. Data are rounded hand-compiled figures for 18 countries (Hofstede scores, 2023 GNI per capita and CPI) and should be checked against the cited sources before any real decision. Sanctions, trade-agreement and tension flags are coarse and change quickly; bilateral agreements are only partly covered. Capital-to-capital distance ignores where customers actually live (US, China, Brazil and Russia are continents). Country averages hide regional and sector variation. Industry weights are reasoned estimates. The tool does not model the company: its capabilities, partners, brand or competitors.`;
+render();
+</script></body></html>
